@@ -51,6 +51,9 @@ public class ItemExporter extends Exporter {
 
     itemMap.forEach((String name, ItemStack itemStack) -> {
       JsonObject item = new JsonObject();
+
+      item.addProperty("displayName", itemStack.getDisplayName());
+
       allItems.add(name, item);
     });
 
