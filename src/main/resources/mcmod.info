@@ -1,0 +1,16 @@
+[
+  {
+    "modid": "MeisterExporter",
+    "name": "MeisterExporter",
+    "description": "Exporter for Meister Crafting Guide",
+    "version": "${version}",
+    "mcversion": "${mcversion}",
+    "url": "",
+    "updateUrl": "",
+    "authorList": [],
+    "credits": "",
+    "logoFile": "",
+    "screenshots": [],
+    "dependencies": []
+  }
+]
