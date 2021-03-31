@@ -32,7 +32,7 @@ public class RecipeExporter extends Exporter {
   protected static String getRecipeWrapperKey(IRecipeWrapper recipeWrapper) {
     try {
       return normalize(recipeWrapper.getClass().getCanonicalName().replaceAll("^mezz\\.jei\\.plugins\\.", ""));
-    } catch(Exception e) {
+    } catch (Exception e) {
       return "nullwrapper";
     }
   }
@@ -86,20 +86,28 @@ public class RecipeExporter extends Exporter {
     String categoryTitle = recipeCategory.getTitle();
     String categoryModName = recipeCategory.getModName();
 
-    recipe.addProperty("categoryModName", categoryModName);
-    recipe.addProperty("categoryTitle", categoryTitle);
-    recipe.addProperty("wrapperName", getRecipeWrapperKey(recipeWrapper));
+    JsonObject category = new JsonObject();
 
-    recipe.add("width", JsonNull.INSTANCE);
-    recipe.add("height", JsonNull.INSTANCE);
+    category.addProperty("modName", categoryModName);
+    category.addProperty("title", categoryTitle);
+    category.addProperty("wrapper", getRecipeWrapperKey(recipeWrapper));
+
+    recipe.add("category", category);
+
+    JsonObject dimensions = new JsonObject();
+
+    dimensions.add("width", JsonNull.INSTANCE);
+    dimensions.add("height", JsonNull.INSTANCE);
 
     if (recipeWrapper instanceof IShapedCraftingRecipeWrapper) {
       int w = ((IShapedCraftingRecipeWrapper) recipeWrapper).getWidth();
       int h = ((IShapedCraftingRecipeWrapper) recipeWrapper).getHeight();
 
-      recipe.addProperty("width", w);
-      recipe.addProperty("height", h);
+      dimensions.addProperty("width", w);
+      dimensions.addProperty("height", h);
     }
+
+    recipe.add("dimensions", dimensions);
 
     Ingredients i = new Ingredients(jeiModRegistry.getIngredientRegistry());
 
