@@ -30,7 +30,11 @@ public class RecipeExporter extends Exporter {
   }
 
   protected static String getRecipeWrapperKey(IRecipeWrapper recipeWrapper) {
-    return normalize(recipeWrapper.getClass().getCanonicalName().replaceAll("^mezz\\.jei\\.plugins\\.", ""));
+    try {
+      return normalize(recipeWrapper.getClass().getCanonicalName().replaceAll("^mezz\\.jei\\.plugins\\.", ""));
+    } catch(Exception e) {
+      return "nullwrapper";
+    }
   }
 
   protected static JsonArray handleIngredients(Map<IIngredientType, List<List>> dataMap) {
