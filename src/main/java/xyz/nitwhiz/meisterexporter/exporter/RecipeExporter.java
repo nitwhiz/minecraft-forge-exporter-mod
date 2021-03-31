@@ -1,6 +1,7 @@
 package xyz.nitwhiz.meisterexporter.exporter;
 
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import mezz.jei.api.IJeiRuntime;
@@ -18,7 +19,9 @@ import xyz.nitwhiz.meisterexporter.jei.Ingredients;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,37 +46,35 @@ public class RecipeExporter extends Exporter {
     for (Map.Entry<?, List<List>> entry : dataMap.entrySet()) {
       List<List> list = entry.getValue();
 
-      for (List i : list) {
-        if (i.size() == 0) {
-          ingredients.add(JsonNull.INSTANCE);
-          continue;
-        }
+      int position = 0;
 
-        JsonArray fittingIngredients = new JsonArray();
+      for (List slot : list) {
+        if (slot.size() != 0) {
+          for (Object possibleItem : slot) {
+            if (possibleItem instanceof ItemStack) {
+              ItemStack itemStack = (ItemStack) possibleItem;
+              ResourceLocation res = Item.REGISTRY.getNameForObject(itemStack.getItem());
 
-        for (Object j : i) {
-          if (j instanceof ItemStack) {
-            ItemStack itemStack = (ItemStack) j;
-            ResourceLocation res = Item.REGISTRY.getNameForObject(itemStack.getItem());
+              if (res != null) {
+                String resName = normalize(res.toString());
+                int meta = itemStack.getMetadata();
+                String id = resName + "_" + meta;
 
-            if (res != null) {
-              String resName = normalize(res.toString());
-              int meta = itemStack.getMetadata();
-              String id = resName + "_" + meta;
+                JsonObject ing = new JsonObject();
 
-              JsonObject ing = new JsonObject();
+                ing.addProperty("id", id);
+                ing.addProperty("count", itemStack.getCount());
+                ing.addProperty("name", resName);
+                ing.addProperty("meta", meta);
+                ing.addProperty("position", position);
 
-              ing.addProperty("id", id);
-              ing.addProperty("count", itemStack.getCount());
-              ing.addProperty("name", resName);
-              ing.addProperty("meta", meta);
-
-              fittingIngredients.add(ing);
+                ingredients.add(ing);
+              }
             }
           }
         }
 
-        ingredients.add(fittingIngredients);
+        ++position;
       }
     }
 
