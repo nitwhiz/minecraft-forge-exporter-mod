@@ -12,10 +12,12 @@ import mezz.jei.api.recipe.wrapper.IShapedCraftingRecipeWrapper;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.logging.log4j.LogManager;
 import xyz.nitwhiz.meisterexporter.jei.Ingredients;
 
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
@@ -51,12 +53,16 @@ public class RecipeExporter extends Exporter {
             ResourceLocation res = Item.REGISTRY.getNameForObject(itemStack.getItem());
 
             if (res != null) {
-              String name = normalize(res.toString() + ":" + itemStack.getItemDamage());
+              String resName = normalize(res.toString());
+              int meta = itemStack.getMetadata();
+              String id = resName + "_" + meta;
 
               JsonObject ing = new JsonObject();
 
-              ing.addProperty("name", name);
+              ing.addProperty("id", id);
               ing.addProperty("count", itemStack.getCount());
+              ing.addProperty("name", resName);
+              ing.addProperty("meta", meta);
 
               fittingIngredients.add(ing);
             }
@@ -70,8 +76,15 @@ public class RecipeExporter extends Exporter {
     return ingredients;
   }
 
-  protected JsonObject handleRecipe(IRecipeWrapper recipeWrapper) {
+  protected JsonObject handleRecipe(IRecipeCategory recipeCategory, IRecipeWrapper recipeWrapper) {
     JsonObject recipe = new JsonObject();
+
+    String categoryTitle = recipeCategory.getTitle();
+    String categoryModName = recipeCategory.getModName();
+
+    recipe.addProperty("categoryModName", categoryModName);
+    recipe.addProperty("categoryTitle", categoryTitle);
+    recipe.addProperty("wrapperName", getRecipeWrapperKey(recipeWrapper));
 
     recipe.add("width", JsonNull.INSTANCE);
     recipe.add("height", JsonNull.INSTANCE);
@@ -111,24 +124,25 @@ public class RecipeExporter extends Exporter {
     return recipe;
   }
 
-  // returns recipes as map: wrapper category -> recipes
   protected HashMap<String, JsonArray> collectAllRecipes(IJeiRuntime jeiRuntime) {
     HashMap<String, JsonArray> recipeMap = new HashMap<>();
 
     for (IRecipeCategory recipeCategory : jeiRuntime.getRecipeRegistry().getRecipeCategories()) {
       for (Object recipeWrapper : jeiRuntime.getRecipeRegistry().getRecipeWrappers(recipeCategory)) {
-        String recipeWrapperKey = getRecipeWrapperKey((IRecipeWrapper) recipeWrapper);
-        JsonArray wrapperRecipes = recipeMap.get(recipeWrapperKey);
+        String key = DigestUtils.sha256Hex(
+          recipeCategory.getModName() + recipeCategory.getTitle() + getRecipeWrapperKey((IRecipeWrapper) recipeWrapper)
+        );
+        JsonArray wrapperRecipes = recipeMap.get(key);
 
         if (wrapperRecipes == null) {
           wrapperRecipes = new JsonArray();
         }
 
-        JsonObject processedRecipe = handleRecipe((IRecipeWrapper) recipeWrapper);
+        JsonObject processedRecipe = handleRecipe(recipeCategory, (IRecipeWrapper) recipeWrapper);
 
         if (processedRecipe != null) {
           wrapperRecipes.add(processedRecipe);
-          recipeMap.putIfAbsent(recipeWrapperKey, wrapperRecipes);
+          recipeMap.putIfAbsent(key, wrapperRecipes);
         }
       }
     }
@@ -137,13 +151,13 @@ public class RecipeExporter extends Exporter {
   }
 
   @Override
-  protected void run() throws Exception {
-    JsonArray recipeCategories = new JsonArray();
+  protected void run() throws IOException {
+    JsonArray recipeFiles = new JsonArray();
 
     collectAllRecipes(jeiRuntime).forEach((String key, JsonArray recipes) -> {
       String fileName = "./export/recipes_" + key + ".json";
 
-      recipeCategories.add(key);
+      recipeFiles.add(key);
 
       LogManager.getLogger("meister").info("exporting " + recipes.size() + " recipes for " + key + " to " + fileName);
 
@@ -157,10 +171,9 @@ public class RecipeExporter extends Exporter {
       }
     });
 
-    FileOutputStream outputStream = new FileOutputStream("./export/recipe_categories.json");
+    FileOutputStream outputStream = new FileOutputStream("./export/recipe_files.json");
 
-    outputStream.write(recipeCategories.toString().getBytes(StandardCharsets.UTF_8));
+    outputStream.write(recipeFiles.toString().getBytes(StandardCharsets.UTF_8));
     outputStream.close();
   }
-
 }

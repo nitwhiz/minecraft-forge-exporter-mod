@@ -157,7 +157,7 @@ public class ExportItemImagesGui extends GuiScreen {
     String name = "_";
 
     if (res != null) {
-      name = (res.toString() + ":" + stack.getItemDamage()).replaceAll("[^a-zA-Z0-9]", "_");
+      name = (res.toString() + "_" + stack.getMetadata()).replaceAll("[^a-zA-Z0-9]", "_");
     }
 
     File file = new File(dir, name + ".png");

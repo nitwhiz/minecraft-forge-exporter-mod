@@ -1,5 +1,6 @@
 package xyz.nitwhiz.meisterexporter.exporter;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import mezz.jei.api.IJeiRuntime;
 import mezz.jei.api.IModRegistry;
@@ -34,9 +35,9 @@ public class ItemExporter extends Exporter {
           ResourceLocation res = Item.REGISTRY.getNameForObject(itemStack.getItem());
 
           if (res != null) {
-            String name = normalize(res.toString() + ":" + itemStack.getItemDamage());
+            String id = normalize(res.toString() + "_" + itemStack.getMetadata());
 
-            items.put(name, itemStack);
+            items.put(id, itemStack);
           }
         }
       }
@@ -45,16 +46,17 @@ public class ItemExporter extends Exporter {
     return items;
   }
 
-  protected JsonObject getItemsAsJsonObject() {
+  protected JsonArray getItemsAsJsonArray() {
     HashMap<String, ItemStack> itemMap = this.getAllItems();
-    JsonObject allItems = new JsonObject();
+    JsonArray allItems = new JsonArray();
 
-    itemMap.forEach((String name, ItemStack itemStack) -> {
+    itemMap.forEach((String id, ItemStack itemStack) -> {
       JsonObject item = new JsonObject();
 
+      item.addProperty("id", id);
       item.addProperty("displayName", itemStack.getDisplayName());
 
-      allItems.add(name, item);
+      allItems.add(item);
     });
 
     return allItems;
@@ -63,7 +65,7 @@ public class ItemExporter extends Exporter {
   @Override
   protected void run() throws Exception {
     String fileName = "./export/items.json";
-    JsonObject allItems = getItemsAsJsonObject();
+    JsonArray allItems = getItemsAsJsonArray();
 
     LogManager.getLogger("meister").info("exporting " + allItems.size() + " items to " + fileName);
 
