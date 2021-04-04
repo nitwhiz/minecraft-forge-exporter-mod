@@ -1,7 +1,6 @@
 package xyz.nitwhiz.meisterexporter.exporter;
 
 import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import mezz.jei.api.IJeiRuntime;
@@ -19,9 +18,7 @@ import xyz.nitwhiz.meisterexporter.jei.Ingredients;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,14 +55,18 @@ public class RecipeExporter extends Exporter {
               if (res != null) {
                 String resName = normalize(res.toString());
                 int meta = itemStack.getMetadata();
+
                 String id = resName + "_" + meta;
 
                 JsonObject ing = new JsonObject();
+                JsonObject item = new JsonObject();
 
-                ing.addProperty("id", id);
+                item.addProperty("id", id);
+                item.addProperty("displayName", itemStack.getDisplayName());
+
+                ing.add("item", item);
+
                 ing.addProperty("count", itemStack.getCount());
-                ing.addProperty("name", resName);
-                ing.addProperty("meta", meta);
                 ing.addProperty("position", position);
 
                 ingredients.add(ing);
