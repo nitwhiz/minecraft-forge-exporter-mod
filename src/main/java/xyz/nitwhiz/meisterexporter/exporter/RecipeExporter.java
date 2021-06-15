@@ -11,6 +11,7 @@ import mezz.jei.api.recipe.IRecipeWrapper;
 import mezz.jei.api.recipe.wrapper.IShapedCraftingRecipeWrapper;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.crafting.IRecipe;
 import net.minecraft.util.ResourceLocation;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.logging.log4j.LogManager;
@@ -138,56 +139,33 @@ public class RecipeExporter extends Exporter {
     return recipe;
   }
 
-  protected HashMap<String, JsonArray> collectAllRecipes(IJeiRuntime jeiRuntime) {
-    HashMap<String, JsonArray> recipeMap = new HashMap<>();
-
+  protected void dumpAllRecipes(IJeiRuntime jeiRuntime) throws IOException {
     for (IRecipeCategory recipeCategory : jeiRuntime.getRecipeRegistry().getRecipeCategories()) {
+      String wrapperKey = Exporter.normalize(
+        recipeCategory.getModName() + ":" + recipeCategory.getTitle()
+      );
+
+      JsonArray categoryRecipes = new JsonArray();
+
       for (Object recipeWrapper : jeiRuntime.getRecipeRegistry().getRecipeWrappers(recipeCategory)) {
-        String key = DigestUtils.sha256Hex(
-          recipeCategory.getModName() + recipeCategory.getTitle() + getRecipeWrapperKey((IRecipeWrapper) recipeWrapper)
-        );
-        JsonArray wrapperRecipes = recipeMap.get(key);
-
-        if (wrapperRecipes == null) {
-          wrapperRecipes = new JsonArray();
-        }
-
         JsonObject processedRecipe = handleRecipe(recipeCategory, (IRecipeWrapper) recipeWrapper);
 
         if (processedRecipe != null) {
-          wrapperRecipes.add(processedRecipe);
-          recipeMap.putIfAbsent(key, wrapperRecipes);
+          categoryRecipes.add(processedRecipe);
         }
       }
-    }
 
-    return recipeMap;
+      LogManager.getLogger("meister").info("exporting " + categoryRecipes.size() + " recipes for " + recipeCategory.getModName() + ":" + recipeCategory.getTitle() + " as recipes_" + wrapperKey + ".json");
+
+      FileOutputStream outputStream = new FileOutputStream("./export/recipes_" + wrapperKey + ".json");
+
+      outputStream.write(categoryRecipes.toString().getBytes(StandardCharsets.UTF_8));
+      outputStream.close();
+    }
   }
 
   @Override
   protected void run() throws IOException {
-    JsonArray recipeFiles = new JsonArray();
-
-    collectAllRecipes(jeiRuntime).forEach((String key, JsonArray recipes) -> {
-      String fileName = "./export/recipes_" + key + ".json";
-
-      recipeFiles.add(key);
-
-      LogManager.getLogger("meister").info("exporting " + recipes.size() + " recipes for " + key + " to " + fileName);
-
-      try {
-        FileOutputStream outputStream = new FileOutputStream(fileName);
-
-        outputStream.write(recipes.toString().getBytes(StandardCharsets.UTF_8));
-        outputStream.close();
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
-    });
-
-    FileOutputStream outputStream = new FileOutputStream("./export/recipe_files.json");
-
-    outputStream.write(recipeFiles.toString().getBytes(StandardCharsets.UTF_8));
-    outputStream.close();
+    dumpAllRecipes(jeiRuntime);
   }
 }
